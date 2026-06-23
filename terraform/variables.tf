@@ -158,6 +158,12 @@ variable "kubeconfig_secret_name" {
   default     = "K3S_KUBECONFIG"
 }
 
+variable "export_kubeconfig" {
+  type        = bool
+  description = "Fetch the kubeconfig over SSH and publish it as the org secret. Enable on apply (cluster up); keep off for plan so planning never depends on SSH reachability."
+  default     = false
+}
+
 variable "server_private_ip" {
   type        = string
   description = "Static private IP of the k3s server node."

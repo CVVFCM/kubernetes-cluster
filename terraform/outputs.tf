@@ -53,8 +53,8 @@ output "db_wallet_base64" {
 # --- GitHub export ---
 
 output "kubeconfig_secret_name" {
-  value       = github_actions_organization_secret.kubeconfig.secret_name
-  description = "Org Actions secret holding the cluster kubeconfig."
+  value       = one(github_actions_organization_secret.kubeconfig[*].secret_name)
+  description = "Org Actions secret holding the cluster kubeconfig (null when export_kubeconfig=false)."
 }
 
 output "database_url_secret_target" {
