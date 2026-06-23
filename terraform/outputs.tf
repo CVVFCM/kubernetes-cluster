@@ -56,3 +56,13 @@ output "kubeconfig_secret_name" {
   value       = github_actions_organization_secret.kubeconfig.secret_name
   description = "Org Actions secret holding the cluster kubeconfig."
 }
+
+output "database_url_secret_target" {
+  value       = "${var.github_org}/${var.database_url_repo} env '${var.database_url_environment}' → DATABASE_URL"
+  description = "Where the Symfony DATABASE_URL secret is written."
+}
+
+output "database_url" {
+  value     = local.database_url
+  sensitive = true
+}

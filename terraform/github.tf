@@ -13,3 +13,18 @@ resource "github_actions_organization_secret" "kubeconfig" {
   visibility      = "all"
   plaintext_value = data.external.kubeconfig.result.kubeconfig
 }
+
+# Symfony DATABASE_URL → repo "prod" environment secret.
+# The environment must already exist. If it does not, uncomment the resource below
+# (note: managing it here can reset the environment's protection rules).
+# resource "github_repository_environment" "database_url" {
+#   repository  = var.database_url_repo
+#   environment = var.database_url_environment
+# }
+
+resource "github_actions_environment_secret" "database_url" {
+  repository      = var.database_url_repo
+  environment     = var.database_url_environment
+  secret_name     = "DATABASE_URL"
+  plaintext_value = local.database_url
+}

@@ -1,0 +1,63 @@
+name: cd
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/cd.yaml'
+  workflow_dispatch:
+
+# No remote state locking on Scaleway (no DynamoDB) — serialize runs.
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+  AWS_REGION: fr-par
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} # github provider PAT (admin:org + repo)
+  TF_VAR_github_org: CVVFCM
+  TF_VAR_tenancy_id: ${{ secrets.OCI_TENANCY_OCID }}
+  TF_VAR_user_id: ${{ secrets.OCI_USER_OCID }}
+  TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+  TF_VAR_compartment_id: ${{ secrets.OCI_COMPARTMENT_OCID }}
+  TF_VAR_private_key_path: ${{ github.workspace }}/terraform/oci_key.pem
+  TF_VAR_ssh_private_key_path: ${{ github.workspace }}/terraform/ssh_key.pem
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - name: Write key files
+        run: |
+          printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
+      - run: tofu init -input=false
+      - run: tofu fmt -check
+      - run: tofu validate
+      - run: tofu plan -input=false
+
+  apply:
+    needs: plan
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production # required-reviewer approval gate
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - name: Write key files
+        run: |
+          printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
+      - run: tofu init -input=false
+      - run: tofu apply -auto-approve -input=false

@@ -103,6 +103,24 @@ variable "db_acl_extra_cidrs" {
   default     = []
 }
 
+variable "db_server_version" {
+  type        = string
+  description = "serverVersion embedded in the Symfony DATABASE_URL."
+  default     = "23"
+}
+
+variable "database_url_repo" {
+  type        = string
+  description = "Repo (under github_org) receiving the DATABASE_URL environment secret."
+  default     = "Meteoprint"
+}
+
+variable "database_url_environment" {
+  type        = string
+  description = "GitHub environment whose secret holds DATABASE_URL."
+  default     = "prod"
+}
+
 variable "github_org" {
   type        = string
   description = "GitHub organization that owns the exported secret."
