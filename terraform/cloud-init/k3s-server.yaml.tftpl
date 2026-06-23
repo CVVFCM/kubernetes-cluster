@@ -1,0 +1,8 @@
+#cloud-config
+runcmd:
+  # OCI Ubuntu images ship persisted iptables rules that drop pod/node traffic.
+  - [ sh, -c, "iptables -F && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT" ]
+  - [ sh, -c, "netfilter-persistent save || true" ]
+  # Discover this node's public IP from the instance metadata service for the cert SAN
+  # (avoids a Terraform dependency cycle on the instance's own public_ip).
+  - [ sh, -c, "PUB=$(curl -s -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/vnics/ | grep -o '\"publicIp\"[^,]*' | head -1 | cut -d'\"' -f4); curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' K3S_TOKEN='${k3s_token}' sh -s - server --node-ip ${node_ip} --advertise-address ${node_ip} --tls-san $PUB --write-kubeconfig-mode 644" ]

@@ -1,0 +1,8 @@
+#cloud-config
+runcmd:
+  # OCI Ubuntu images ship persisted iptables rules that drop pod/node traffic.
+  - [ sh, -c, "iptables -F && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT" ]
+  - [ sh, -c, "netfilter-persistent save || true" ]
+  # Wait for the server API to answer, then join as an agent.
+  - [ sh, -c, "until curl -sk ${server_url}/ping >/dev/null 2>&1; do sleep 5; done" ]
+  - [ sh, -c, "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' K3S_URL='${server_url}' K3S_TOKEN='${k3s_token}' sh -s - agent --node-ip ${node_ip}" ]

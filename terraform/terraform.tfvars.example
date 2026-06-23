@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+
+tenancy_id     = "ocid1.tenancy.oc1..xxxxxxxx"
+user_id        = "ocid1.user.oc1..xxxxxxxx"
+fingerprint    = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+compartment_id = "ocid1.compartment.oc1..xxxxxxxx" # or the tenancy OCID for the root compartment
+
+# Optional overrides:
+# private_key_path     = "~/oracle-private.pem"
+# region               = "eu-paris-1"
+# github_username      = "yohang"
+# ssh_ingress_cidr     = "203.0.113.4/32"
+# k3s_api_ingress_cidr = "0.0.0.0/0"
+# k3s_version          = "v1.31.4+k3s1"
+
+# Autonomous Database:
+# db_name            = "k3sappdb"             # alphanumeric, max 14 chars
+# db_workload        = "OLTP"                 # OLTP | DW | AJD
+# db_acl_extra_cidrs = ["203.0.113.4/32"]     # your workstation; node IPs added automatically
+
+# GitHub org secret export (also: export GITHUB_TOKEN=<PAT with admin:org>):
+github_org = "my-org"
+# ssh_private_key_path   = "~/.ssh/id_ed25519"  # matches your GitHub public keys
+# kubeconfig_secret_name = "K3S_KUBECONFIG"
