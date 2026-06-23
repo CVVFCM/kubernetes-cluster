@@ -13,6 +13,12 @@ if [ ! -s "$KEY" ]; then
   exit 1
 fi
 
+# Fail fast on a malformed/encrypted key instead of burning the retry loop.
+if ! ssh-keygen -y -P "" -f "$KEY" >/dev/null 2>&1; then
+  echo "ssh key invalid or passphrase-protected: $KEY (store SSH_PRIVATE_KEY base64-encoded, unencrypted)" >&2
+  exit 1
+fi
+
 SSH=(ssh -i "$KEY"
   -o StrictHostKeyChecking=no
   -o UserKnownHostsFile=/dev/null

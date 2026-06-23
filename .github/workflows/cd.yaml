@@ -63,6 +63,6 @@ jobs:
       - name: Write key files
         run: |
           printf '%s\n' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ssh_key.pem && chmod 600 ssh_key.pem
       - run: tofu init -input=false
       - run: tofu apply -auto-approve -input=false
