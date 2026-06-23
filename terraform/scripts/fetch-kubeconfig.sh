@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# Terraform external data source: reads {host, key} JSON on stdin,
-# SSHes the k3s server, fetches the kubeconfig, rewrites the loopback
-# address to the server's public IP, and prints {"kubeconfig": "..."} JSON.
-# On failure it surfaces the real SSH error on stderr (Terraform shows it).
+# Terraform external data source: reads {host, key_pem} JSON on stdin,
+# SSHes the k3s server with the cluster's generated private key, fetches the
+# kubeconfig, rewrites the loopback address to the server's public IP, and
+# prints {"kubeconfig": "..."} JSON. Surfaces the real SSH error on stderr.
 set -euo pipefail
 
-eval "$(jq -r '@sh "HOST=\(.host) KEY=\(.key)"')"
-KEY="${KEY/#\~/$HOME}"
+input="$(cat)"
+HOST="$(jq -r '.host' <<<"$input")"
 
-if [ ! -s "$KEY" ]; then
-  echo "ssh key file missing or empty: $KEY (is the SSH_PRIVATE_KEY secret set?)" >&2
-  exit 1
-fi
+KEY="$(mktemp)"
+err_file="$(mktemp)"
+trap 'rm -f "$KEY" "$err_file"' EXIT
 
-# Fail fast on a malformed/encrypted key instead of burning the retry loop.
+jq -r '.key_pem' <<<"$input" >"$KEY"
+chmod 600 "$KEY"
+
 if ! ssh-keygen -y -P "" -f "$KEY" >/dev/null 2>&1; then
-  echo "ssh key invalid or passphrase-protected: $KEY (store SSH_PRIVATE_KEY base64-encoded, unencrypted)" >&2
+  echo "generated cluster key is invalid (tls_private_key.cluster)" >&2
   exit 1
 fi
 
@@ -25,9 +26,6 @@ SSH=(ssh -i "$KEY"
   -o BatchMode=yes
   -o ConnectTimeout=10
   "ubuntu@$HOST")
-
-err_file="$(mktemp)"
-trap 'rm -f "$err_file"' EXIT
 
 for _ in $(seq 1 18); do
   if KC="$("${SSH[@]}" 'sudo cat /etc/rancher/k3s/k3s.yaml' 2>"$err_file")" && [ -n "$KC" ]; then

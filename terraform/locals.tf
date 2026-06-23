@@ -7,8 +7,11 @@ data "http" "github_keys" {
 }
 
 locals {
-  ad       = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.ads.availability_domains[0].name
-  ssh_keys = join("\n", [for k in jsondecode(data.http.github_keys.response_body) : k.key])
+  ad = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.ads.availability_domains[0].name
+  ssh_keys = join("\n", concat(
+    [for k in jsondecode(data.http.github_keys.response_body) : k.key],
+    [tls_private_key.cluster.public_key_openssh],
+  ))
 
   server_url = "https://${var.server_private_ip}:6443"
 

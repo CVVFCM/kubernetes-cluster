@@ -25,7 +25,6 @@ env:
   TF_VAR_fingerprint: ${{ secrets.TF_VAR_fingerprint }}
   TF_VAR_compartment_id: ${{ secrets.TF_VAR_compartment_id }}
   TF_VAR_private_key_path: ${{ github.workspace }}/terraform/oci_key.pem
-  TF_VAR_ssh_private_key_path: ${{ github.workspace }}/terraform/ssh_key.pem
 
 jobs:
   plan:
@@ -63,6 +62,5 @@ jobs:
       - name: Write key files
         run: |
           printf '%s\n' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ssh_key.pem && chmod 600 ssh_key.pem
       - run: tofu init -input=false
       - run: tofu apply -auto-approve -input=false

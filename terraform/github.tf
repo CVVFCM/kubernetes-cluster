@@ -4,8 +4,8 @@ data "external" "kubeconfig" {
   program    = ["bash", "${path.module}/scripts/fetch-kubeconfig.sh"]
 
   query = {
-    host = oci_core_instance.nodes["server"].public_ip
-    key  = var.ssh_private_key_path
+    host    = oci_core_instance.nodes["server"].public_ip
+    key_pem = tls_private_key.cluster.private_key_openssh
   }
 }
 

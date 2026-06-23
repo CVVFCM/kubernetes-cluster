@@ -146,12 +146,6 @@ variable "github_org" {
   description = "GitHub organization that owns the exported secret."
 }
 
-variable "ssh_private_key_path" {
-  type        = string
-  description = "Private key matching the GitHub public keys authorizing node SSH (used to fetch kubeconfig)."
-  default     = "~/.ssh/id_ed25519"
-}
-
 variable "kubeconfig_secret_name" {
   type        = string
   description = "Name of the GitHub org Actions secret holding the kubeconfig."
