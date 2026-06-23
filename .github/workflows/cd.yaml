@@ -38,7 +38,7 @@ jobs:
       - uses: opentofu/setup-opentofu@v2
       - name: Write key files
         run: |
-          printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
+          printf '%s\n' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
       - uses: terraform-linters/setup-tflint@v6
       - run: tflint --init
       - run: tflint
@@ -62,7 +62,7 @@ jobs:
       - uses: opentofu/setup-opentofu@v2
       - name: Write key files
         run: |
-          printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
+          printf '%s\n' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
       - run: tofu init -input=false
       - run: tofu apply -auto-approve -input=false
