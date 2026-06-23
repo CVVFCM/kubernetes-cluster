@@ -103,19 +103,23 @@ variable "db_acl_extra_cidrs" {
   default     = []
 }
 
-variable "cloudflare_zone_id" {
-  type        = string
-  description = "Cloudflare zone ID for cvvfcm.fr (zone overview in the CF dashboard)."
+variable "cloudflare_zones" {
+  type        = map(string) # zone name => zone ID (not secret)
+  description = "Cloudflare zone IDs keyed by zone name."
+  default = {
+    "cvvfcm.fr" = "3fa2035c4239d02756471c8a0f51f247"
+  }
 }
 
 variable "domains" {
   type = list(object({
     domain  = string # record name, relative to the zone
+    zone    = string # zone name, key into cloudflare_zones
     proxied = bool   # Cloudflare proxy (orange cloud)
   }))
   description = "Hostnames to point at the cluster (every node)."
   default = [
-    { domain = "meteoprint", proxied = true },
+    { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
   ]
 }
 

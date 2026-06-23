@@ -9,9 +9,9 @@ data "external" "kubeconfig" {
 }
 
 resource "github_actions_organization_secret" "kubeconfig" {
-  secret_name     = var.kubeconfig_secret_name
-  visibility      = "all"
-  plaintext_value = data.external.kubeconfig.result.kubeconfig
+  secret_name = var.kubeconfig_secret_name
+  visibility  = "all"
+  value       = data.external.kubeconfig.result.kubeconfig
 }
 
 # Symfony DATABASE_URL → repo "prod" environment secret.
@@ -23,8 +23,8 @@ resource "github_actions_organization_secret" "kubeconfig" {
 # }
 
 resource "github_actions_environment_secret" "database_url" {
-  repository      = var.database_url_repo
-  environment     = var.database_url_environment
-  secret_name     = "DATABASE_URL"
-  plaintext_value = local.database_url
+  repository  = var.database_url_repo
+  environment = var.database_url_environment
+  secret_name = "DATABASE_URL"
+  value       = local.database_url
 }

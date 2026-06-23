@@ -6,6 +6,7 @@ locals {
       for node_key, node in oci_core_instance.nodes :
       "${d.domain}-${node_key}" => {
         domain  = d.domain
+        zone_id = var.cloudflare_zones[d.zone]
         proxied = d.proxied
         ip      = node.public_ip
       }
@@ -17,7 +18,7 @@ locals {
 resource "cloudflare_dns_record" "app" {
   for_each = local.dns_records
 
-  zone_id = var.cloudflare_zone_id
+  zone_id = each.value.zone_id
   name    = each.value.domain
   type    = "A"
   content = each.value.ip

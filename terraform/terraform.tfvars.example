@@ -19,10 +19,10 @@ compartment_id = "ocid1.compartment.oc1..xxxxxxxx" # or the tenancy OCID for the
 # db_acl_extra_cidrs = ["203.0.113.4/32"]     # your workstation; node IPs added automatically
 
 # Cloudflare DNS (also: export CLOUDFLARE_API_TOKEN=<token>):
-cloudflare_zone_id = "0123456789abcdef0123456789abcdef" # cvvfcm.fr zone ID
+# cloudflare_zones = { "cvvfcm.fr" = "3fa2035c4239d02756471c8a0f51f247" }
 # domains = [
-#   { domain = "meteoprint", proxied = true },
-#   { domain = "api",        proxied = false },
+#   { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
+#   { domain = "api",        zone = "cvvfcm.fr", proxied = false },
 # ]
 
 # GitHub org secret export (also: export GITHUB_TOKEN=<PAT with admin:org>):
