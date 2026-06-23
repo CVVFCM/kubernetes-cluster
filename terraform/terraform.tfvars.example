@@ -18,6 +18,13 @@ compartment_id = "ocid1.compartment.oc1..xxxxxxxx" # or the tenancy OCID for the
 # db_workload        = "OLTP"                 # OLTP | DW | AJD
 # db_acl_extra_cidrs = ["203.0.113.4/32"]     # your workstation; node IPs added automatically
 
+# Cloudflare DNS (also: export CLOUDFLARE_API_TOKEN=<token>):
+cloudflare_zone_id = "0123456789abcdef0123456789abcdef" # cvvfcm.fr zone ID
+# domains = [
+#   { domain = "meteoprint", proxied = true },
+#   { domain = "api",        proxied = false },
+# ]
+
 # GitHub org secret export (also: export GITHUB_TOKEN=<PAT with admin:org>):
 github_org = "my-org"
 # ssh_private_key_path   = "~/.ssh/id_ed25519"  # matches your GitHub public keys

@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.6.0"
+
   required_providers {
     oci = {
       source  = "oracle/oci"
@@ -20,6 +22,14 @@ terraform {
       source  = "integrations/github"
       version = "~> 6.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.3"
+    }
   }
 }
 
@@ -34,4 +44,8 @@ provider "oci" {
 provider "github" {
   owner = var.github_org
   # token from GITHUB_TOKEN env (PAT with admin:org / org secrets write)
+}
+
+provider "cloudflare" {
+  # api_token from CLOUDFLARE_API_TOKEN env
 }

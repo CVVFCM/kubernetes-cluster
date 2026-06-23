@@ -103,10 +103,26 @@ variable "db_acl_extra_cidrs" {
   default     = []
 }
 
+variable "cloudflare_zone_id" {
+  type        = string
+  description = "Cloudflare zone ID for cvvfcm.fr (zone overview in the CF dashboard)."
+}
+
+variable "domains" {
+  type = list(object({
+    domain  = string # record name, relative to the zone
+    proxied = bool   # Cloudflare proxy (orange cloud)
+  }))
+  description = "Hostnames to point at the cluster (every node)."
+  default = [
+    { domain = "meteoprint", proxied = true },
+  ]
+}
+
 variable "db_server_version" {
   type        = string
-  description = "serverVersion embedded in the Symfony DATABASE_URL."
-  default     = "23"
+  description = "serverVersion embedded in the Symfony DATABASE_URL. Must match the actual ADB version."
+  default     = "19"
 }
 
 variable "database_url_repo" {
