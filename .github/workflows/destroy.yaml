@@ -1,0 +1,45 @@
+name: destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DESTROY to confirm'
+        required: true
+        default: ''
+
+# Share the cd.yaml lock group so destroy never races apply.
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+  AWS_REGION: fr-par
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  TF_VAR_github_org: CVVFCM
+  TF_VAR_tenancy_id: ${{ secrets.TF_VAR_tenancy_id }}
+  TF_VAR_user_id: ${{ secrets.TF_VAR_user_id }}
+  TF_VAR_fingerprint: ${{ secrets.TF_VAR_fingerprint }}
+  TF_VAR_compartment_id: ${{ secrets.TF_VAR_compartment_id }}
+  TF_VAR_private_key_path: ${{ github.workspace }}/terraform/oci_key.pem
+
+jobs:
+  destroy:
+    # Owner-only + explicit typed confirmation.
+    if: github.actor == 'yohang' && inputs.confirm == 'DESTROY'
+    runs-on: ubuntu-latest
+    environment: production # required-reviewer approval gate
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2
+      - name: Write key files
+        run: |
+          printf '%s\n' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
+      - run: tofu init -input=false
+      - run: tofu destroy -auto-approve -input=false
