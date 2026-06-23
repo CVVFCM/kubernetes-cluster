@@ -19,10 +19,10 @@ env:
   AWS_REGION: fr-par
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} # github provider PAT (admin:org + repo)
   TF_VAR_github_org: CVVFCM
-  TF_VAR_tenancy_id: ${{ secrets.OCI_TENANCY_OCID }}
-  TF_VAR_user_id: ${{ secrets.OCI_USER_OCID }}
-  TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
-  TF_VAR_compartment_id: ${{ secrets.OCI_COMPARTMENT_OCID }}
+  TF_VAR_tenancy_id: ${{ secrets.TF_VAR_tenancy_id }}
+  TF_VAR_user_id: ${{ secrets.TF_VAR_user_id }}
+  TF_VAR_fingerprint: ${{ secrets.TF_VAR_fingerprint }}
+  TF_VAR_compartment_id: ${{ secrets.TF_VAR_compartment_id }}
   TF_VAR_private_key_path: ${{ github.workspace }}/terraform/oci_key.pem
   TF_VAR_ssh_private_key_path: ${{ github.workspace }}/terraform/ssh_key.pem
 
@@ -38,7 +38,6 @@ jobs:
       - name: Write key files
         run: |
           printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
       - run: tofu init -input=false
       - run: tofu fmt -check
       - run: tofu validate
@@ -58,6 +57,5 @@ jobs:
       - name: Write key files
         run: |
           printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.pem && chmod 600 oci_key.pem
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem && chmod 600 ssh_key.pem
       - run: tofu init -input=false
       - run: tofu apply -auto-approve -input=false
