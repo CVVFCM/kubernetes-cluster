@@ -16,8 +16,10 @@ data "http" "github_keys" {
 
 locals {
   ad = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.ads.availability_domains[0].name
+  # sort() so the live GitHub API's response order can't churn ssh_authorized_keys
+  # (and thus instance metadata) on an otherwise no-op apply.
   ssh_keys = join("\n", concat(
-    [for k in jsondecode(data.http.github_keys.response_body) : k.key],
+    sort([for k in jsondecode(data.http.github_keys.response_body) : k.key]),
     [tls_private_key.cluster.public_key_openssh],
   ))
 

@@ -41,4 +41,12 @@ resource "oci_core_instance" "nodes" {
       }
     ))
   }
+
+  # user_data is ForceNew: editing cloud-init would otherwise destroy+recreate the
+  # node (wiping the k3s datastore / Longhorn registry). Pin it so config changes
+  # never recreate a live node. Cloud-init edits then reach a node only on a
+  # deliberate rebuild; apply cluster changes via kubectl and host changes via SSH.
+  lifecycle {
+    ignore_changes = [metadata["user_data"]]
+  }
 }
