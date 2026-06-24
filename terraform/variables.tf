@@ -123,6 +123,18 @@ variable "domains" {
   ]
 }
 
+variable "node_hostnames" {
+  type        = list(string)
+  description = "Per-node direct DNS names, assigned in sorted-node-key order. Must hold at least as many names as nodes."
+  default     = ["optimist", "laser", "europe", "declic", "vaurien", "caravelle"]
+}
+
+variable "node_dns_zone" {
+  type        = string
+  description = "Zone (key into cloudflare_zones) for the per-node direct records."
+  default     = "cvvfcm.fr"
+}
+
 variable "db_server_version" {
   type        = string
   description = "serverVersion embedded in the Symfony DATABASE_URL. Must match the actual ADB version."

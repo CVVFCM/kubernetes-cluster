@@ -25,3 +25,27 @@ resource "cloudflare_dns_record" "app" {
   ttl     = 1 # 1 = automatic (required when proxied)
   proxied = each.value.proxied
 }
+
+locals {
+  # One direct (non-proxied) hostname per node, names drawn from the pool in
+  # sorted-node-key order so each node keeps a stable name.
+  node_direct_dns = {
+    for idx, k in sort(keys(oci_core_instance.nodes)) :
+    k => {
+      hostname = var.node_hostnames[idx]
+      ip       = oci_core_instance.nodes[k].public_ip
+    }
+  }
+}
+
+# Direct A record per node (SSH / API access). DNS-only — node IP exposed.
+resource "cloudflare_dns_record" "node" {
+  for_each = local.node_direct_dns
+
+  zone_id = var.cloudflare_zones[var.node_dns_zone]
+  name    = each.value.hostname
+  type    = "A"
+  content = each.value.ip
+  ttl     = 1
+  proxied = false
+}
