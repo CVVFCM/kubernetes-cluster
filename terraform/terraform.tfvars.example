@@ -13,11 +13,6 @@ compartment_id = "ocid1.compartment.oc1..xxxxxxxx" # or the tenancy OCID for the
 # k3s_api_ingress_cidr = "0.0.0.0/0"
 # k3s_version          = "v1.31.4+k3s1"
 
-# Autonomous Database:
-# db_name            = "k3sappdb"             # alphanumeric, max 14 chars
-# db_workload        = "OLTP"                 # OLTP | DW | AJD
-# db_acl_extra_cidrs = ["203.0.113.4/32"]     # your workstation; node IPs added automatically
-
 # Cloudflare DNS (also: export CLOUDFLARE_API_TOKEN=<token>):
 # cloudflare_zones = { "cvvfcm.fr" = "3fa2035c4239d02756471c8a0f51f247" }
 # domains = [

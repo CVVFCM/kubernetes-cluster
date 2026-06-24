@@ -85,24 +85,6 @@ variable "subnet_cidr" {
   default = "10.0.1.0/24"
 }
 
-variable "db_name" {
-  type        = string
-  description = "ADB db_name: alphanumeric, max 14 chars, unique in tenancy."
-  default     = "k3sappdb"
-}
-
-variable "db_workload" {
-  type        = string
-  description = "ADB workload type: OLTP (ATP), DW (ADW), or AJD."
-  default     = "OLTP"
-}
-
-variable "db_acl_extra_cidrs" {
-  type        = list(string)
-  description = "Extra IPs/CIDRs allowed to reach the DB (e.g. your workstation). Node public IPs are added automatically."
-  default     = []
-}
-
 variable "cloudflare_zones" {
   type        = map(string) # zone name => zone ID (not secret)
   description = "Cloudflare zone IDs keyed by zone name."
@@ -133,24 +115,6 @@ variable "node_dns_zone" {
   type        = string
   description = "Zone (key into cloudflare_zones) for the per-node direct records."
   default     = "cvvfcm.fr"
-}
-
-variable "db_server_version" {
-  type        = string
-  description = "serverVersion embedded in the Symfony DATABASE_URL. Must match the actual ADB version."
-  default     = "19"
-}
-
-variable "database_url_repo" {
-  type        = string
-  description = "Repo (under github_org) receiving the DATABASE_URL environment secret."
-  default     = "Meteoprint"
-}
-
-variable "database_url_environment" {
-  type        = string
-  description = "GitHub environment whose secret holds DATABASE_URL."
-  default     = "prod"
 }
 
 variable "github_org" {
