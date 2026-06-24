@@ -3,8 +3,8 @@ runcmd:
   # OCI Ubuntu images ship persisted iptables rules that drop pod/node traffic.
   - [ sh, -c, "iptables -F && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT" ]
   - [ sh, -c, "netfilter-persistent save || true" ]
-  # Discover this node's public IP from the instance metadata service for the cert SAN
-  # (avoids a Terraform dependency cycle on the instance's own public_ip). Retry IMDS,
-  # and only add --tls-san when a value was found so the flag never collapses and eats
-  # the following args.
-  - [ sh, -c, "for i in $(seq 1 10); do PUB=$(curl -s -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/vnics/ | grep -oP '\"publicIp\"\\s*:\\s*\"\\K[^\"]+' | head -1); [ -n \"$PUB\" ] && break; sleep 3; done; TLS_SAN=''; [ -n \"$PUB\" ] && TLS_SAN=\"--tls-san $PUB\"; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' K3S_TOKEN='${k3s_token}' sh -s - server --node-ip ${node_ip} --advertise-address ${node_ip} $TLS_SAN --write-kubeconfig-mode 644" ]
+  # Discover this node's public IP for the cert SAN via an echo service (IMDS does NOT
+  # expose publicIp; egress IP == the instance's public IP through the IGW 1:1 NAT).
+  # Avoids a Terraform dependency cycle on the instance's own public_ip. Only add
+  # --tls-san when a value was found so the flag never collapses and eats later args.
+  - [ sh, -c, "for i in $(seq 1 10); do PUB=$(curl -fsS https://api.ipify.org || curl -fsS https://ifconfig.me); [ -n \"$PUB\" ] && break; sleep 3; done; TLS_SAN=''; [ -n \"$PUB\" ] && TLS_SAN=\"--tls-san $PUB\"; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' K3S_TOKEN='${k3s_token}' sh -s - server --node-ip ${node_ip} --advertise-address ${node_ip} $TLS_SAN --write-kubeconfig-mode 644" ]
