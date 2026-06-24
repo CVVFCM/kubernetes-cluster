@@ -69,6 +69,12 @@ variable "k3s_api_ingress_cidr" {
   default     = "0.0.0.0/0"
 }
 
+variable "http_ingress_cidr" {
+  type        = string
+  description = "CIDR allowed to reach Traefik HTTP/HTTPS (80/443). 0.0.0.0/0 = open; lock to Cloudflare ranges to force traffic through the CF proxy."
+  default     = "0.0.0.0/0"
+}
+
 variable "k3s_version" {
   type        = string
   description = "k3s version to pin (INSTALL_K3S_VERSION). Empty installs latest stable."

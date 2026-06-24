@@ -45,6 +45,27 @@ resource "oci_core_security_list" "main" {
     }
   }
 
+  # Traefik HTTP/HTTPS — k3s ServiceLB (klipper) binds 80/443 on every node.
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.http_ingress_cidr
+
+    tcp_options {
+      min = 80
+      max = 80
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.http_ingress_cidr
+
+    tcp_options {
+      min = 443
+      max = 443
+    }
+  }
+
   # All intra-VCN traffic (flannel VXLAN 8472/udp, kubelet 10250, pod/service nets).
   ingress_security_rules {
     protocol = "all"
