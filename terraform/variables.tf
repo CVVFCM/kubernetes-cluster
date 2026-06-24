@@ -129,6 +129,12 @@ variable "longhorn_version" {
   default     = "1.11.2"
 }
 
+variable "k9s_version" {
+  type        = string
+  description = "k9s release tag installed on the nodes (arm64 binary from GitHub releases)."
+  default     = "v0.51.0"
+}
+
 variable "github_org" {
   type        = string
   description = "GitHub organization that owns the exported secret."

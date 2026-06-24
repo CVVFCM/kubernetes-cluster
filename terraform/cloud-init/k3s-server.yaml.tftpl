@@ -27,6 +27,11 @@ write_files:
           persistence:
             defaultClass: false
             defaultClassReplicaCount: 1
+  # k9s (and kubectl) pick this up on login; k3s writes k3s.yaml world-readable.
+  - path: /etc/profile.d/k9s.sh
+    permissions: '0644'
+    content: |
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 runcmd:
   # OCI Ubuntu images ship persisted iptables rules that drop pod/node traffic.
   - [ sh, -c, "iptables -F && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT" ]
@@ -42,6 +47,8 @@ runcmd:
   - [ sh, -c, "blkid /dev/oracleoci/oraclevdb || mkfs.ext4 -F /dev/oracleoci/oraclevdb" ]
   - [ sh, -c, "mkdir -p /var/lib/longhorn && grep -q /var/lib/longhorn /etc/fstab || echo '/dev/oracleoci/oraclevdb /var/lib/longhorn ext4 defaults,nofail 0 2' >> /etc/fstab" ]
   - [ sh, -c, "mount -a" ]
+  # k9s cluster TUI (arm64 binary) for SSH-in troubleshooting.
+  - [ sh, -c, "curl -sfL https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_arm64.tar.gz | tar xz -C /usr/local/bin k9s" ]
   # Discover this node's public IP for the cert SAN via an echo service (IMDS does NOT
   # expose publicIp; egress IP == the instance's public IP through the IGW 1:1 NAT).
   # Avoids a Terraform dependency cycle on the instance's own public_ip. Only add

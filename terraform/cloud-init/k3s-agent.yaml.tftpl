@@ -14,6 +14,9 @@ runcmd:
   - [ sh, -c, "blkid /dev/oracleoci/oraclevdb || mkfs.ext4 -F /dev/oracleoci/oraclevdb" ]
   - [ sh, -c, "mkdir -p /var/lib/longhorn && grep -q /var/lib/longhorn /etc/fstab || echo '/dev/oracleoci/oraclevdb /var/lib/longhorn ext4 defaults,nofail 0 2' >> /etc/fstab" ]
   - [ sh, -c, "mount -a" ]
+  # k9s cluster TUI (arm64 binary). Note: agents have no kubeconfig; point KUBECONFIG
+  # at a copied k3s.yaml (or run k9s on the server node) for it to connect.
+  - [ sh, -c, "curl -sfL https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_arm64.tar.gz | tar xz -C /usr/local/bin k9s" ]
   # Wait for the server API to answer, then join as an agent.
   - [ sh, -c, "until curl -sk ${server_url}/ping >/dev/null 2>&1; do sleep 5; done" ]
   - [ sh, -c, "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' K3S_URL='${server_url}' K3S_TOKEN='${k3s_token}' sh -s - agent --node-ip ${node_ip}" ]

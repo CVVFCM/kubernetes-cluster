@@ -37,6 +37,7 @@ resource "oci_core_instance" "nodes" {
         server_url       = local.server_url
         node_ip          = each.value.private_ip
         longhorn_version = var.longhorn_version
+        k9s_version      = var.k9s_version
       }
     ))
   }
