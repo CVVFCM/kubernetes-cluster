@@ -39,6 +39,13 @@ variable "github_username" {
   default     = "yohang"
 }
 
+variable "github_token" {
+  type        = string
+  sensitive   = true
+  description = "GitHub token used to authenticate the SSH-keys API read (raises the 60/hr anonymous rate limit). Empty = unauthenticated."
+  default     = ""
+}
+
 variable "availability_domain" {
   type        = string
   description = "AD name; empty selects the first AD in the region."

@@ -4,6 +4,14 @@ data "oci_identity_availability_domains" "ads" {
 
 data "http" "github_keys" {
   url = "https://api.github.com/users/${var.github_username}/keys"
+
+  # Authenticate when a token is available: anonymous api.github.com is 60 req/hr
+  # per IP and shared CI runners blow through it, returning an error object that
+  # breaks the jsondecode below.
+  request_headers = merge(
+    { Accept = "application/vnd.github+json" },
+    var.github_token != "" ? { Authorization = "Bearer ${var.github_token}" } : {},
+  )
 }
 
 locals {
