@@ -55,10 +55,13 @@ locals {
 
   # Symfony/Doctrine oci8 DSN. The full descriptor is URL-encoded and placed as the
   # host segment; Doctrine rawurldecodes it back. serverVersion + charset included.
+  # Symfony resolves DATABASE_URL via %env(resolve:...)%, so any literal '%' (from
+  # urlencode, e.g. '%25') must be doubled to '%%' or the container param resolver
+  # tries to interpret it as a parameter reference and fails.
   database_url = format(
     "oci8://ADMIN:%s@%s?serverVersion=%s&charset=AL32UTF8",
-    urlencode(random_password.db_admin.result),
-    urlencode(local.db_tls_descriptor),
+    replace(urlencode(random_password.db_admin.result), "%", "%%"),
+    replace(urlencode(local.db_tls_descriptor), "%", "%%"),
     var.db_server_version,
   )
 }
