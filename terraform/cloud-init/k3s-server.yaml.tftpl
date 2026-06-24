@@ -43,6 +43,9 @@ write_files:
         valuesContent: |-
           deployment:
             replicas: 2
+          providers:
+            kubernetesGateway:
+              enabled: true
           affinity:
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
