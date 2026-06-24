@@ -53,15 +53,28 @@ locals {
     if upper(p.consumer_group) == "HIGH" && upper(p.tls_authentication) == "SERVER"
   ])
 
-  # Symfony/Doctrine oci8 DSN. The full descriptor is URL-encoded and placed as the
-  # host segment; Doctrine rawurldecodes it back. serverVersion + charset included.
-  # Symfony resolves DATABASE_URL via %env(resolve:...)%, so any literal '%' (from
-  # urlencode, e.g. '%25') must be doubled to '%%' or the container param resolver
-  # tries to interpret it as a parameter reference and fails.
+  # Symfony/Doctrine oci8 DSN. serverVersion + charset included.
+  #
+  # Doctrine oci8 driver (AbstractOracleDriver\EasyConnectString::fromConnectionParameters):
+  # if a 'host' is present it gets wrapped as (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=<host>)...)),
+  # so the full TCPS descriptor must NOT sit in the host slot — that nests the descriptor inside
+  # HOST=, forces PROTOCOL=TCP, drops SERVICE_NAME and yields ORA-12154. The driver checks
+  # 'connectstring' FIRST and uses it verbatim, so pass the descriptor there instead.
+  #
+  # Encoding chain to land the descriptor byte-exact at oci8:
+  #   urlencode            : percent-encode. Terraform encodes spaces as '+'.
+  #   replace "+" -> "%20" : DBAL's rawurldecode leaves '+' literal, so force %20 (= space).
+  #   replace "%" -> "%%"  : Symfony %env(resolve:DATABASE_URL)% collapses '%%' back to '%'.
+  # DBAL then rawurldecodes the query once -> original descriptor.
+  db_descriptor_enc = replace(replace(urlencode(local.db_tls_descriptor), "+", "%20"), "%", "%%")
+  db_admin_pw_enc   = replace(urlencode(random_password.db_admin.result), "%", "%%")
+
+  # 'localhost' is only there to form a valid URL (parse_url rejects an empty host, e.g. "@/").
+  # The driver ignores it because the connectstring branch takes precedence.
   database_url = format(
-    "oci8://ADMIN:%s@%s?serverVersion=%s&charset=AL32UTF8",
-    replace(urlencode(random_password.db_admin.result), "%", "%%"),
-    replace(urlencode(local.db_tls_descriptor), "%", "%%"),
+    "oci8://ADMIN:%s@localhost?connectstring=%s&serverVersion=%s&charset=AL32UTF8",
+    local.db_admin_pw_enc,
+    local.db_descriptor_enc,
     var.db_server_version,
   )
 }
