@@ -32,10 +32,11 @@ resource "oci_core_instance" "nodes" {
     user_data = base64encode(templatefile(
       "${path.module}/cloud-init/k3s-${each.value.role}.yaml.tftpl",
       {
-        k3s_token   = random_password.k3s_token.result
-        k3s_version = var.k3s_version
-        server_url  = local.server_url
-        node_ip     = each.value.private_ip
+        k3s_token        = random_password.k3s_token.result
+        k3s_version      = var.k3s_version
+        server_url       = local.server_url
+        node_ip          = each.value.private_ip
+        longhorn_version = var.longhorn_version
       }
     ))
   }

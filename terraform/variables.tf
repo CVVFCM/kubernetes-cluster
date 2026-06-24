@@ -117,6 +117,18 @@ variable "node_dns_zone" {
   default     = "cvvfcm.fr"
 }
 
+variable "longhorn_volume_size_gb" {
+  type        = number
+  description = "Size of the per-node OCI block volume backing Longhorn (/var/lib/longhorn). 2 x 50 + 2 boot vols stays under the 200 GB Always-Free cap."
+  default     = 50
+}
+
+variable "longhorn_version" {
+  type        = string
+  description = "Longhorn Helm chart version (arm64-published). Pin explicitly; verify latest at charts.longhorn.io before bumping."
+  default     = "1.11.2"
+}
+
 variable "github_org" {
   type        = string
   description = "GitHub organization that owns the exported secret."

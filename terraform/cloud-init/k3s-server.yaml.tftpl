@@ -1,8 +1,47 @@
 #cloud-config
+write_files:
+  # k3s helm-controller auto-deploys any manifest dropped here on startup.
+  # Installs Longhorn pinned to an arm64-published chart. defaultReplicaCount=1:
+  # the OCI block volume backing /var/lib/longhorn is already durable (OCI
+  # replicates it internally), so a 2nd Longhorn replica would only add node-level
+  # HA at 2x write + half capacity — declined; a node-down means PV unavailable
+  # until it returns, not data loss. defaultClass=false keeps local-path default.
+  - path: /var/lib/rancher/k3s/server/manifests/longhorn.yaml
+    permissions: '0644'
+    content: |
+      apiVersion: helm.cattle.io/v1
+      kind: HelmChart
+      metadata:
+        name: longhorn
+        namespace: kube-system
+      spec:
+        repo: https://charts.longhorn.io
+        chart: longhorn
+        targetNamespace: longhorn-system
+        createNamespace: true
+        version: "${longhorn_version}"
+        valuesContent: |-
+          defaultSettings:
+            defaultReplicaCount: 1
+            defaultDataLocality: best-effort
+          persistence:
+            defaultClass: false
+            defaultClassReplicaCount: 1
 runcmd:
   # OCI Ubuntu images ship persisted iptables rules that drop pod/node traffic.
   - [ sh, -c, "iptables -F && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT" ]
   - [ sh, -c, "netfilter-persistent save || true" ]
+  # Longhorn node prerequisites: open-iscsi + iscsid; multipathd MUST be off or
+  # it claims Longhorn's block devices and volumes fail to attach.
+  - [ sh, -c, "export DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install -y open-iscsi" ]
+  - [ sh, -c, "systemctl enable --now iscsid" ]
+  - [ sh, -c, "systemctl disable --now multipathd || true" ]
+  # Dedicated Longhorn data disk: wait for the paravirtualized attach, format once,
+  # mount at /var/lib/longhorn BEFORE k3s starts so Longhorn lands on it (not boot disk).
+  - [ sh, -c, "for i in $(seq 1 30); do [ -b /dev/oracleoci/oraclevdb ] && break; sleep 3; done" ]
+  - [ sh, -c, "blkid /dev/oracleoci/oraclevdb || mkfs.ext4 -F /dev/oracleoci/oraclevdb" ]
+  - [ sh, -c, "mkdir -p /var/lib/longhorn && grep -q /var/lib/longhorn /etc/fstab || echo '/dev/oracleoci/oraclevdb /var/lib/longhorn ext4 defaults,nofail 0 2' >> /etc/fstab" ]
+  - [ sh, -c, "mount -a" ]
   # Discover this node's public IP for the cert SAN via an echo service (IMDS does NOT
   # expose publicIp; egress IP == the instance's public IP through the IGW 1:1 NAT).
   # Avoids a Terraform dependency cycle on the instance's own public_ip. Only add
