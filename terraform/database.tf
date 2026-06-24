@@ -29,6 +29,12 @@ resource "oci_database_autonomous_database" "main" {
     [for n in oci_core_instance.nodes : n.public_ip],
     var.db_acl_extra_cidrs,
   )
+
+  # Always Free ADB has fixed, immutable compute/storage (reported as 0) — any
+  # update attempt is rejected with 403. Don't reconcile these after creation.
+  lifecycle {
+    ignore_changes = [cpu_core_count, data_storage_size_in_tbs]
+  }
 }
 
 resource "oci_database_autonomous_database_wallet" "main" {
