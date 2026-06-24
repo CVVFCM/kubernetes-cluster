@@ -148,6 +148,25 @@ variable "k9s_version" {
   default     = "v0.51.0"
 }
 
+variable "cert_manager_version" {
+  type        = string
+  description = "cert-manager Helm chart version. Pin explicitly; verify latest at charts.jetstack.io."
+  default     = "v1.20.2"
+}
+
+variable "acme_email" {
+  type        = string
+  description = "Contact email for the Let's Encrypt ACME account (expiry notices)."
+  default     = "yohan@les-tilleuls.coop"
+}
+
+variable "cloudflare_dns_api_token" {
+  type        = string
+  sensitive   = true
+  description = "Cloudflare API token for cert-manager DNS-01 (Zone.DNS:Edit + Zone:Read). Written into a k8s Secret via cloud-init; lands in TF state + OCI metadata."
+  default     = ""
+}
+
 variable "github_org" {
   type        = string
   description = "GitHub organization that owns the exported secret."
