@@ -11,6 +11,7 @@ resource "helm_release" "longhorn" {
   version          = var.longhorn_version
   namespace        = "longhorn-system"
   create_namespace = true
+  timeout          = 600
 
   values = [yamlencode({
     defaultSettings = {
@@ -71,6 +72,7 @@ resource "helm_release" "traefik" {
   version          = var.traefik_chart_version != "" ? var.traefik_chart_version : null
   namespace        = "traefik"
   create_namespace = true
+  timeout          = 600
 
   values = [yamlencode({
     deployment = { replicas = 2 }
@@ -82,7 +84,11 @@ resource "helm_release" "traefik" {
     gatewayClass = { enabled = false }
     service = {
       type                  = "LoadBalancer"
-      externalTrafficPolicy = "Local"
+
+      spec = {
+        externalTrafficPolicy = "Local"
+      }
+
       annotations = {
         "oci.oraclecloud.com/load-balancer-type"                                  = "nlb"
         "oci-network-load-balancer.oraclecloud.com/is-preserve-source"            = "true"
@@ -153,6 +159,7 @@ resource "helm_release" "cert_manager" {
   version          = var.cert_manager_version
   namespace        = "cert-manager"
   create_namespace = true
+  timeout          = 600
 
   values = [yamlencode({
     crds = { enabled = true }
