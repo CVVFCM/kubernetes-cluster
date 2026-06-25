@@ -1,0 +1,10 @@
+#cloud-config
+runcmd:
+  # Longhorn prerequisites on Oracle Linux: iscsi-initiator-utils provides
+  # iscsiadm + iscsid. multipathd is not installed by default on OL — disable
+  # defensively (it claims Longhorn's block devices if present).
+  - [ sh, -c, "yum install -y iscsi-initiator-utils && systemctl enable --now iscsid" ]
+  - [ sh, -c, "systemctl disable --now multipathd 2>/dev/null || true" ]
+  # REQUIRED: fetch and run the OKE node bootstrap. Without this a node with
+  # custom user_data never registers with the cluster.
+  - [ sh, -c, "curl --fail -H 'Authorization: Bearer Oracle' -L0 http://169.254.169.254/opc/v2/instance/metadata/oke_init_script | base64 --decode > /var/run/oke-init.sh && bash /var/run/oke-init.sh" ]

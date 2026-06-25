@@ -1,8 +1,6 @@
-# Cluster SSH keypair generated at apply time.
-# Public key is injected into every node's authorized_keys (see locals.tf);
-# the private key is used directly by the kubeconfig fetch (see github.tf) and
-# published as an org secret for operators. Rotate with `-replace` on this resource
-# (also recreate the nodes so the new public key lands in authorized_keys).
+# Cluster SSH keypair generated at apply time. Public key is set as the OKE node
+# pool's ssh_public_key (oke.tf) for optional operator SSH into workers; the private
+# key is published as an org secret. Rotate with `-replace` (then recycle the pool).
 resource "tls_private_key" "cluster" {
   algorithm = "ED25519"
 }

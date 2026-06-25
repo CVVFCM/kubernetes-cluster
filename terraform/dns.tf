@@ -1,51 +1,52 @@
+# Traefik's LoadBalancer Service → flexible OCI NLB. Read its assigned public IP
+# once the release is up and feed it to the app DNS records.
+data "kubernetes_service" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = "traefik"
+  }
+
+  depends_on = [helm_release.traefik]
+}
+
 locals {
-  # Cross every requested domain with every cluster node → one A record each
-  # (DNS round-robin). Keyed "<domain>-<node>" for stable for_each addressing.
-  dns_records = merge([
-    for d in var.domains : {
-      for node_key, node in oci_core_instance.nodes :
-      "${d.domain}-${node_key}" => {
-        domain  = d.domain
-        zone_id = var.cloudflare_zones[d.zone]
-        proxied = d.proxied
-        ip      = node.public_ip
-      }
+  nlb_ip = data.kubernetes_service.traefik.status[0].load_balancer[0].ingress[0].ip
+
+  app_records = {
+    for d in var.domains : d.domain => {
+      zone_id = var.cloudflare_zones[d.zone]
+      proxied = d.proxied
     }
-  ]...)
-}
+  }
 
-# k3s Traefik/ServiceLB listens on 80/443 of each node.
-resource "cloudflare_dns_record" "app" {
-  for_each = local.dns_records
-
-  zone_id = each.value.zone_id
-  name    = each.value.domain
-  type    = "A"
-  content = each.value.ip
-  ttl     = 1 # 1 = automatic (required when proxied)
-  proxied = each.value.proxied
-}
-
-locals {
-  # One direct (non-proxied) hostname per node, names drawn from the pool in
-  # sorted-node-key order so each node keeps a stable name.
+  # Optional per-node direct records. Keys come from static inputs (node_count +
+  # node_hostnames) so for_each is known at plan; the IP is resolved per index.
   node_direct_dns = {
-    for idx, k in sort(keys(oci_core_instance.nodes)) :
-    k => {
-      hostname = var.node_hostnames[idx]
-      ip       = oci_core_instance.nodes[k].public_ip
-    }
+    for i in range(var.node_count) : var.node_hostnames[i] => i
   }
 }
 
-# Direct A record per node (SSH / API access). DNS-only — node IP exposed.
+# App domains → the NLB public IP (Cloudflare-proxied).
+resource "cloudflare_dns_record" "app" {
+  for_each = local.app_records
+
+  zone_id = each.value.zone_id
+  name    = each.key
+  type    = "A"
+  content = local.nlb_ip
+  ttl     = 1 # automatic (required when proxied)
+  proxied = each.value.proxied
+}
+
+# Optional direct-to-node records (DNS-only). Node-pool nodes can recycle, so
+# these IPs are best-effort and may change on a node replacement.
 resource "cloudflare_dns_record" "node" {
   for_each = local.node_direct_dns
 
   zone_id = var.cloudflare_zones[var.node_dns_zone]
-  name    = each.value.hostname
+  name    = each.key
   type    = "A"
-  content = each.value.ip
+  content = oci_containerengine_node_pool.workers.nodes[each.value].public_ip
   ttl     = 1
   proxied = false
 }

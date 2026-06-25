@@ -31,18 +31,11 @@ variable "compartment_id" {
   description = "Compartment OCID where resources are created."
 }
 
-# --- Cluster configuration ---
+# --- OKE cluster + node pool ---
 
-variable "github_username" {
+variable "kubernetes_version" {
   type        = string
-  description = "GitHub user whose public keys authorize SSH access."
-  default     = "yohang"
-}
-
-variable "github_token" {
-  type        = string
-  sensitive   = true
-  description = "GitHub token used to authenticate the SSH-keys API read (raises the 60/hr anonymous rate limit). Empty = unauthenticated."
+  description = "OKE Kubernetes version (e.g. v1.31.1). Empty = latest supported."
   default     = ""
 }
 
@@ -52,51 +45,78 @@ variable "availability_domain" {
   default     = ""
 }
 
+variable "node_count" {
+  type        = number
+  description = "Worker node count."
+  default     = 2
+}
+
 variable "ocpus" {
   type        = number
-  description = "OCPUs per instance. 2 nodes x 2 = 4 = A1 Always-Free cap."
+  description = "OCPUs per worker. 2 nodes x 2 = 4 = A1 Always-Free cap."
   default     = 2
 }
 
 variable "memory_in_gbs" {
   type        = number
-  description = "Memory per instance. 2 nodes x 12 = 24 = A1 Always-Free cap."
+  description = "Memory per worker. 2 nodes x 12 = 24 = A1 Always-Free cap."
   default     = 12
 }
 
-variable "ssh_ingress_cidr" {
-  type        = string
-  description = "CIDR allowed to reach SSH (22)."
-  default     = "0.0.0.0/0"
+variable "node_boot_volume_gb" {
+  type        = number
+  description = "Worker boot volume size (also backs Longhorn /var/lib/longhorn). 2 x 100 = 200 = block Always-Free cap."
+  default     = 100
 }
 
-variable "k3s_api_ingress_cidr" {
-  type        = string
-  description = "CIDR allowed to reach the k3s API (6443)."
-  default     = "0.0.0.0/0"
-}
-
-variable "http_ingress_cidr" {
-  type        = string
-  description = "CIDR allowed to reach Traefik HTTP/HTTPS (80/443). 0.0.0.0/0 = open; lock to Cloudflare ranges to force traffic through the CF proxy."
-  default     = "0.0.0.0/0"
-}
-
-variable "k3s_version" {
-  type        = string
-  description = "k3s version to pin (INSTALL_K3S_VERSION). Empty installs latest stable."
-  default     = ""
-}
+# --- Networking ---
 
 variable "vcn_cidr" {
   type    = string
   default = "10.0.0.0/16"
 }
 
-variable "subnet_cidr" {
-  type    = string
-  default = "10.0.1.0/24"
+variable "api_subnet_cidr" {
+  type        = string
+  description = "Subnet for the OKE Kubernetes API endpoint."
+  default     = "10.0.0.0/28"
 }
+
+variable "worker_subnet_cidr" {
+  type        = string
+  description = "Subnet for worker nodes (public)."
+  default     = "10.0.1.0/24"
+}
+
+variable "lb_subnet_cidr" {
+  type        = string
+  description = "Subnet for LoadBalancer/NLB frontends (public)."
+  default     = "10.0.2.0/24"
+}
+
+variable "pods_cidr" {
+  type    = string
+  default = "10.244.0.0/16"
+}
+
+variable "services_cidr" {
+  type    = string
+  default = "10.96.0.0/16"
+}
+
+variable "kube_api_ingress_cidr" {
+  type        = string
+  description = "CIDR allowed to reach the OKE API endpoint (6443)."
+  default     = "0.0.0.0/0"
+}
+
+variable "http_ingress_cidr" {
+  type        = string
+  description = "CIDR allowed to reach the NLB on 80/443. 0.0.0.0/0 = open; lock to Cloudflare ranges to force traffic through the CF proxy."
+  default     = "0.0.0.0/0"
+}
+
+# --- Cloudflare DNS ---
 
 variable "cloudflare_zones" {
   type        = map(string) # zone name => zone ID (not secret)
@@ -112,7 +132,7 @@ variable "domains" {
     zone    = string # zone name, key into cloudflare_zones
     proxied = bool   # Cloudflare proxy (orange cloud)
   }))
-  description = "Hostnames to point at the cluster (every node)."
+  description = "App hostnames pointed at the NLB."
   default = [
     { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
   ]
@@ -120,7 +140,7 @@ variable "domains" {
 
 variable "node_hostnames" {
   type        = list(string)
-  description = "Per-node direct DNS names, assigned in sorted-node-key order. Must hold at least as many names as nodes."
+  description = "Optional per-node direct DNS names, assigned in node order. Must hold at least node_count names."
   default     = ["optimist", "laser", "europe", "declic", "vaurien", "caravelle"]
 }
 
@@ -130,42 +150,52 @@ variable "node_dns_zone" {
   default     = "cvvfcm.fr"
 }
 
-variable "longhorn_volume_size_gb" {
-  type        = number
-  description = "Size of the per-node OCI block volume backing Longhorn (/var/lib/longhorn). 2 x 50 + 2 boot vols stays under the 200 GB Always-Free cap."
-  default     = 50
-}
+# --- Add-on versions / TLS ---
 
 variable "longhorn_version" {
   type        = string
-  description = "Longhorn Helm chart version (arm64-published). Pin explicitly; verify latest at charts.longhorn.io before bumping."
-  default     = "1.11.2"
+  description = "Longhorn Helm chart version (arm64-published). Verify latest at charts.longhorn.io."
+  default     = "1.12.0"
 }
 
-variable "k9s_version" {
+variable "traefik_chart_version" {
   type        = string
-  description = "k9s release tag installed on the nodes (arm64 binary from GitHub releases)."
-  default     = "v0.51.0"
+  description = "Traefik Helm chart version. Empty = latest."
+  default     = ""
+}
+
+variable "gateway_api_version" {
+  type        = string
+  description = "Kubernetes Gateway API release tag for the standard-channel CRDs."
+  default     = "v1.2.1"
 }
 
 variable "cert_manager_version" {
   type        = string
-  description = "cert-manager Helm chart version. Pin explicitly; verify latest at charts.jetstack.io."
+  description = "cert-manager Helm chart version. Verify latest at charts.jetstack.io."
   default     = "v1.20.2"
 }
 
 variable "acme_email" {
   type        = string
-  description = "Contact email for the Let's Encrypt ACME account (expiry notices)."
+  description = "Contact email for the Let's Encrypt ACME account."
   default     = "yohan@les-tilleuls.coop"
+}
+
+variable "default_cluster_issuer" {
+  type        = string
+  description = "ClusterIssuer for the wildcard Gateway cert. Use letsencrypt-staging while testing, then letsencrypt-prod."
+  default     = "letsencrypt-staging"
 }
 
 variable "cloudflare_dns_api_token" {
   type        = string
   sensitive   = true
-  description = "Cloudflare API token for cert-manager DNS-01 (Zone.DNS:Edit + Zone:Read). Written into a k8s Secret via cloud-init; lands in TF state + OCI metadata."
+  description = "Cloudflare API token for cert-manager DNS-01 (Zone.DNS:Edit + Zone:Read). Written into a k8s Secret; lands in TF state."
   default     = ""
 }
+
+# --- GitHub export ---
 
 variable "github_org" {
   type        = string
@@ -175,23 +205,5 @@ variable "github_org" {
 variable "kubeconfig_secret_name" {
   type        = string
   description = "Name of the GitHub org Actions secret holding the kubeconfig."
-  default     = "K3S_KUBECONFIG"
-}
-
-variable "export_kubeconfig" {
-  type        = bool
-  description = "Fetch the kubeconfig over SSH and publish it as the org secret. Enable on apply (cluster up); keep off for plan so planning never depends on SSH reachability."
-  default     = false
-}
-
-variable "server_private_ip" {
-  type        = string
-  description = "Static private IP of the k3s server node."
-  default     = "10.0.1.10"
-}
-
-variable "agent_private_ip" {
-  type        = string
-  description = "Static private IP of the k3s agent node."
-  default     = "10.0.1.11"
+  default     = "OKE_KUBECONFIG"
 }

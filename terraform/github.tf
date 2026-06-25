@@ -1,17 +1,8 @@
-data "external" "kubeconfig" {
-  count      = var.export_kubeconfig ? 1 : 0
-  depends_on = [oci_core_instance.nodes]
-  program    = ["bash", "${path.module}/scripts/fetch-kubeconfig.sh"]
-
-  query = {
-    host    = oci_core_instance.nodes["server"].public_ip
-    key_pem = tls_private_key.cluster.private_key_openssh
-  }
-}
-
+# OKE kubeconfig published as an org Actions secret for CI in other repos.
+# Note: this kubeconfig uses an exec credential (`oci ce cluster generate-token`),
+# so consumers need the OCI CLI + OCI auth available.
 resource "github_actions_organization_secret" "kubeconfig" {
-  count       = var.export_kubeconfig ? 1 : 0
   secret_name = var.kubeconfig_secret_name
   visibility  = "all"
-  value       = data.external.kubeconfig[0].result.kubeconfig
+  value       = data.oci_containerengine_cluster_kube_config.main.content
 }
