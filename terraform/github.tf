@@ -31,9 +31,8 @@ resource "github_actions_organization_secret" "oci_region" {
   value       = var.region
 }
 
-# Terraform lit ton fichier .pem local et l'envoie dans GitHub de manière sécurisée
 resource "github_actions_organization_secret" "oci_api_key" {
   secret_name = "OCI_API_KEY"
   visibility  = "private"
-  value       = file(var.private_key_path)
+  value       = base64encode(file(var.private_key_path))
 }
