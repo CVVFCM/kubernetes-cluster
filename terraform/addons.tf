@@ -83,7 +83,7 @@ resource "helm_release" "traefik" {
     gateway      = { enabled = false }
     gatewayClass = { enabled = false }
     service = {
-      type                  = "LoadBalancer"
+      type = "LoadBalancer"
 
       spec = {
         externalTrafficPolicy = "Local"
