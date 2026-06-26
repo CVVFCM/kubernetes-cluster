@@ -77,7 +77,10 @@ resource "helm_release" "traefik" {
   values = [yamlencode({
     deployment = { replicas = 2 }
     providers = {
-      kubernetesGateway = { enabled = true }
+      kubernetesGateway = {
+        enabled             = true
+        experimentalChannel = false
+      }
     }
     # We define our own GatewayClass + Gateway (below) for explicit 80/443 + TLS.
     gateway      = { enabled = false }
