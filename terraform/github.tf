@@ -33,6 +33,6 @@ resource "github_actions_organization_secret" "oci_region" {
 
 resource "github_actions_organization_secret" "oci_api_key" {
   secret_name = "OCI_API_KEY"
-  visibility  = "private"
+  visibility  = "all"
   value       = base64encode(file(var.private_key_path))
 }
