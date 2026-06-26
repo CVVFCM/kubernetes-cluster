@@ -78,8 +78,7 @@ resource "helm_release" "traefik" {
     deployment = { replicas = 2 }
     providers = {
       kubernetesGateway = {
-        enabled             = true
-        experimentalChannel = true
+        enabled = true
       }
     }
     # We define our own GatewayClass + Gateway (below) for explicit 80/443 + TLS.
