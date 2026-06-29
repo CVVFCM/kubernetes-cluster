@@ -212,6 +212,45 @@ variable "traefik_dashboard_host" {
   default     = "traefik.cvvfcm.fr"
 }
 
+# --- Grafana Alloy / Grafana Cloud ---
+
+variable "alloy_version" {
+  type        = string
+  description = "grafana/alloy Helm chart version."
+  default     = "1.10.0"
+}
+
+variable "grafana_cloud_prometheus_url" {
+  type        = string
+  description = "Grafana Cloud Prometheus remote_write push URL (.../api/prom/push)."
+  default     = ""
+}
+
+variable "grafana_cloud_prometheus_user" {
+  type        = string
+  description = "Grafana Cloud Prometheus instance ID (basic-auth username)."
+  default     = ""
+}
+
+variable "grafana_cloud_loki_url" {
+  type        = string
+  description = "Grafana Cloud Loki push URL (.../loki/api/v1/push)."
+  default     = ""
+}
+
+variable "grafana_cloud_loki_user" {
+  type        = string
+  description = "Grafana Cloud Loki instance ID (basic-auth username)."
+  default     = ""
+}
+
+variable "grafana_cloud_token" {
+  type        = string
+  sensitive   = true
+  description = "Grafana Cloud Access Policy token (metrics:write + logs:write + traces:write). Empty = Alloy not deployed. Lands in a k8s Secret + TF state."
+  default     = ""
+}
+
 # --- GitHub export ---
 
 variable "github_org" {

@@ -1,0 +1,169 @@
+// Grafana Alloy config for the cvvfcm OKE cluster.
+// Endpoints + credentials are injected as env vars by the Helm release
+// (terraform/addons.tf) so this file is generic and secret-free. The Grafana
+// Cloud write token arrives as GCLOUD_TOKEN (from a k8s Secret); per-signal
+// push URLs and instance IDs come from non-secret env vars.
+
+// =========================== LOGS -> Loki ===========================
+
+discovery.kubernetes "pods" {
+  role = "pod"
+}
+
+discovery.relabel "pod_logs" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    separator     = "/"
+    target_label  = "job"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    target_label  = "node"
+  }
+}
+
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pod_logs.output
+  forward_to = [loki.write.grafanacloud.receiver]
+}
+
+loki.write "grafanacloud" {
+  endpoint {
+    url = sys.env("LOKI_URL")
+    basic_auth {
+      username = sys.env("LOKI_USER")
+      password = sys.env("GCLOUD_TOKEN")
+    }
+  }
+  external_labels = {
+    cluster = "cvvfcm-oke",
+  }
+}
+
+// ======================== METRICS -> Prometheus ========================
+
+prometheus.remote_write "grafanacloud" {
+  endpoint {
+    url = sys.env("PROM_URL")
+    basic_auth {
+      username = sys.env("PROM_USER")
+      password = sys.env("GCLOUD_TOKEN")
+    }
+  }
+  external_labels = {
+    cluster = "cvvfcm-oke",
+  }
+}
+
+discovery.kubernetes "nodes" {
+  role = "node"
+}
+
+// kubelet /metrics via the apiserver proxy (works without opening node ports).
+discovery.relabel "kubelet" {
+  targets = discovery.kubernetes.nodes.targets
+
+  rule {
+    target_label = "__address__"
+    replacement  = "kubernetes.default.svc.cluster.local:443"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    regex         = "(.+)"
+    replacement   = "/api/v1/nodes/$1/proxy/metrics"
+    target_label  = "__metrics_path__"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    target_label  = "node"
+  }
+}
+
+prometheus.scrape "kubelet" {
+  targets           = discovery.relabel.kubelet.output
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    ca_file     = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    server_name = "kubernetes"
+  }
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+}
+
+// cAdvisor (container CPU/mem/net) via the same apiserver proxy.
+discovery.relabel "cadvisor" {
+  targets = discovery.kubernetes.nodes.targets
+
+  rule {
+    target_label = "__address__"
+    replacement  = "kubernetes.default.svc.cluster.local:443"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    regex         = "(.+)"
+    replacement   = "/api/v1/nodes/$1/proxy/metrics/cadvisor"
+    target_label  = "__metrics_path__"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    target_label  = "node"
+  }
+}
+
+prometheus.scrape "cadvisor" {
+  targets           = discovery.relabel.cadvisor.output
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    ca_file     = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    server_name = "kubernetes"
+  }
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+}
+
+// Traefik exposes Prometheus metrics on the pod's :9100 (not on its Service).
+discovery.kubernetes "traefik" {
+  role = "pod"
+  namespaces {
+    names = ["traefik"]
+  }
+}
+
+discovery.relabel "traefik" {
+  targets = discovery.kubernetes.traefik.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_port_number"]
+    regex         = "9100"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+}
+
+prometheus.scrape "traefik" {
+  targets    = discovery.relabel.traefik.output
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+}
+
+// Traces (Tempo / OTLP receiver) intentionally omitted for now — add back later.

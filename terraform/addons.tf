@@ -306,3 +306,72 @@ resource "kubectl_manifest" "dashboard_ingressroute" {
     kubectl_manifest.wildcard_cert,
   ]
 }
+
+# --- Grafana Alloy (logs + metrics + traces → Grafana Cloud) ---
+# Cluster telemetry collector. Runs as a DaemonSet (one pod per node) so it can
+# tail each node's pod logs and scrape node-local kubelet/cAdvisor. Endpoints +
+# the write token are injected as env vars; the .alloy config reads them via
+# sys.env(). Whole stack gated on the token so nothing deploys without creds.
+
+resource "kubernetes_namespace" "alloy" {
+  count = var.grafana_cloud_token != "" ? 1 : 0
+
+  metadata {
+    name = "alloy"
+  }
+}
+
+resource "kubernetes_secret" "grafana_cloud" {
+  count = var.grafana_cloud_token != "" ? 1 : 0
+
+  metadata {
+    name      = "grafana-cloud"
+    namespace = "alloy"
+  }
+
+  data = {
+    token = var.grafana_cloud_token
+  }
+
+  depends_on = [kubernetes_namespace.alloy]
+}
+
+resource "helm_release" "alloy" {
+  count = var.grafana_cloud_token != "" ? 1 : 0
+
+  name       = "alloy"
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "alloy"
+  version    = var.alloy_version
+  namespace  = "alloy"
+  timeout    = 600
+
+  values = [yamlencode({
+    controller = { type = "daemonset" }
+    alloy = {
+      configMap = { content = file("${path.module}/alloy/config.alloy") }
+      resources = {
+        requests = { cpu = "100m", memory = "128Mi" }
+        limits   = { memory = "256Mi" }
+      }
+      extraEnv = [
+        { name = "PROM_URL", value = var.grafana_cloud_prometheus_url },
+        { name = "PROM_USER", value = var.grafana_cloud_prometheus_user },
+        { name = "LOKI_URL", value = var.grafana_cloud_loki_url },
+        { name = "LOKI_USER", value = var.grafana_cloud_loki_user },
+        {
+          name = "GCLOUD_TOKEN"
+          valueFrom = {
+            secretKeyRef = { name = "grafana-cloud", key = "token" }
+          }
+        },
+      ]
+    }
+  })]
+
+  depends_on = [
+    oci_containerengine_node_pool.workers,
+    kubernetes_namespace.alloy,
+    kubernetes_secret.grafana_cloud,
+  ]
+}

@@ -29,6 +29,15 @@ github_org     = "CVVFCM"
 # Empty/unset = dashboard not exposed.
 # traefik_dashboard_users = "admin:$2y$05$..."
 
+# Grafana Alloy → Grafana Cloud. Endpoints + instance IDs from the Cloud Portal
+# stack details; one Access Policy token with metrics/logs/traces write scopes.
+# Empty token = Alloy not deployed. Token also: export TF_VAR_grafana_cloud_token=<token>.
+# grafana_cloud_prometheus_url  = "https://prometheus-prod-XX-region.grafana.net/api/prom/push"
+# grafana_cloud_prometheus_user = "123456"
+# grafana_cloud_loki_url        = "https://logs-prod-XX.grafana.net/loki/api/v1/push"
+# grafana_cloud_loki_user       = "123456"
+# grafana_cloud_token           = "glc_..."
+
 # GitHub org secret export (also: export GITHUB_TOKEN=<PAT with admin:org>):
 github_org = "my-org"
 # kubeconfig_secret_name = "OKE_KUBECONFIG"
