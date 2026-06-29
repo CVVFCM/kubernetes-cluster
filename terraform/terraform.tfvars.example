@@ -4,6 +4,7 @@ tenancy_id     = "ocid1.tenancy.oc1..xxxxxxxx"
 user_id        = "ocid1.user.oc1..xxxxxxxx"
 fingerprint    = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
 compartment_id = "ocid1.compartment.oc1..xxxxxxxx" # or the tenancy OCID for the root compartment
+github_org     = "CVVFCM"
 
 # Optional overrides:
 # private_key_path      = "~/oracle-private.pem"

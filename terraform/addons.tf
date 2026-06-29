@@ -76,6 +76,12 @@ resource "helm_release" "traefik" {
 
   values = [yamlencode({
     deployment = { replicas = 2 }
+    # With required pod anti-affinity (one Traefik per host) and replicas == node
+    # count, a surge pod can never schedule. Roll by freeing a host first instead.
+    updateStrategy = {
+      type          = "RollingUpdate"
+      rollingUpdate = { maxSurge = 0, maxUnavailable = 1 }
+    }
     providers = {
       kubernetesGateway = {
         enabled = true

@@ -1,8 +1,14 @@
+variable "backend_profile" {
+  type    = string
+  default = "default"
+}
+
 terraform {
   backend "s3" {
-    bucket = "cvvfcm-terraform-state"
-    key    = "kubernetes-cluster/terraform.tfstate"
-    region = "fr-par"
+    bucket  = "cvvfcm-terraform-state"
+    key     = "kubernetes-cluster/terraform.tfstate"
+    region  = "fr-par"
+    profile = var.backend_profile
 
     # Scaleway Object Storage is S3-compatible, not AWS.
     endpoints = {
