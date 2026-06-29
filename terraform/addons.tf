@@ -349,7 +349,7 @@ resource "helm_release" "alloy" {
   values = [yamlencode({
     controller = { type = "daemonset" }
     alloy = {
-      configMap = { content = file("${path.module}/alloy/config.alloy") }
+      configMap = { content = file("${path.module}/alloy-config/config.alloy") }
       resources = {
         requests = { cpu = "100m", memory = "128Mi" }
         limits   = { memory = "256Mi" }
