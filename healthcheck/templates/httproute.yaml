@@ -1,0 +1,18 @@
+# The first HTTPRoute on the shared Traefik Gateway. Without at least one route
+# the Gateway 404s every host — this is what makes HTTP traffic flow.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
+  hostnames:
+    - {{ .Values.hostname | quote }}
+  rules:
+    - backendRefs:
+        - name: {{ .Release.Name }}
+          port: 80

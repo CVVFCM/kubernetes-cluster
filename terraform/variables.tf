@@ -135,6 +135,8 @@ variable "domains" {
   description = "App hostnames pointed at the NLB."
   default = [
     { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
+    { domain = "healthcheck", zone = "cvvfcm.fr", proxied = false },
+    { domain = "traefik", zone = "cvvfcm.fr", proxied = false },
   ]
 }
 
@@ -166,8 +168,8 @@ variable "traefik_chart_version" {
 
 variable "gateway_api_version" {
   type        = string
-  description = "Kubernetes Gateway API release tag for the standard-channel CRDs."
-  default     = "v1.2.1"
+  description = "Kubernetes Gateway API release tag for the standard-channel CRDs. Keep in lockstep with the Traefik version (v3.7 → v1.5.x)."
+  default     = "v1.5.1"
 }
 
 variable "cert_manager_version" {
@@ -185,7 +187,7 @@ variable "acme_email" {
 variable "default_cluster_issuer" {
   type        = string
   description = "ClusterIssuer for the wildcard Gateway cert. Use letsencrypt-staging while testing, then letsencrypt-prod."
-  default     = "letsencrypt-staging"
+  default     = "letsencrypt-prod"
 }
 
 variable "cloudflare_dns_api_token" {
@@ -193,6 +195,21 @@ variable "cloudflare_dns_api_token" {
   sensitive   = true
   description = "Cloudflare API token for cert-manager DNS-01 (Zone.DNS:Edit + Zone:Read). Written into a k8s Secret; lands in TF state."
   default     = ""
+}
+
+# --- Traefik dashboard ---
+
+variable "traefik_dashboard_users" {
+  type        = string
+  sensitive   = true
+  description = "htpasswd lines for the Traefik dashboard BasicAuth (e.g. output of `htpasswd -nbB admin '<pw>'`). Empty = dashboard not exposed. Lands in a k8s Secret + TF state."
+  default     = ""
+}
+
+variable "traefik_dashboard_host" {
+  type        = string
+  description = "Hostname the Traefik dashboard IngressRoute matches. Must resolve to the NLB (add it to var.domains)."
+  default     = "traefik.cvvfcm.fr"
 }
 
 # --- GitHub export ---

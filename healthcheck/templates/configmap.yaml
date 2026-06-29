@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+data:
+  Caddyfile: |
+    :80 {
+        respond "{{ .Values.responseBody }}" 200
+    }

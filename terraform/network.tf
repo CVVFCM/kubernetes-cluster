@@ -82,6 +82,23 @@ resource "oci_core_security_list" "workers" {
       code = 4
     }
   }
+
+  # The OCI NLB forwards to worker NodePorts with the client's source IP
+  # preserved (is-preserve-source=true + externalTrafficPolicy=Local, addons.tf).
+  # The health check rides the vcn_cidr rule above, but data-plane packets carry
+  # the real client IP, so the NodePort range must be reachable from the same
+  # CIDR that fronts the NLB — otherwise traffic is dropped and connections time
+  # out. Lock http_ingress_cidr to Cloudflare ranges to force traffic via the CF
+  # proxy. 30000-32767 is the default K8s NodePort range (covers the web/
+  # websecure nodePorts and the healthCheckNodePort).
+  ingress_security_rules {
+    protocol = "6" # TCP
+    source   = var.http_ingress_cidr
+    tcp_options {
+      min = 30000
+      max = 32767
+    }
+  }
 }
 
 resource "oci_core_security_list" "lb" {

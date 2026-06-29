@@ -1,0 +1,28 @@
+# caddy:2-alpine is multi-arch and publishes linux/arm64 — required, the A1.Flex
+# workers are aarch64. Fully-qualified registry path is mandatory: the OKE node
+# runtime enforces short-name mode and rejects a bare "caddy".
+image:
+  repository: docker.io/library/caddy
+  tag: "2-alpine"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# Body returned by the Caddyfile `respond` directive on every path.
+responseBody: "healthcheck ok"
+
+# Gateway this app's HTTPRoute attaches to (the shared Traefik Gateway in addons.tf).
+gateway:
+  name: main
+  namespace: traefik
+
+hostname: healthcheck.cvvfcm.fr
+
+# Deliberately tiny — this is a probe, not a workload.
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 50m
+    memory: 32Mi

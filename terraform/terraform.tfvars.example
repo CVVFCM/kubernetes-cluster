@@ -19,9 +19,15 @@ github_org     = "CVVFCM"
 # Cloudflare DNS (also: export CLOUDFLARE_API_TOKEN=<token>):
 # cloudflare_zones = { "cvvfcm.fr" = "3fa2035c4239d02756471c8a0f51f247" }
 # domains = [
-#   { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
-#   { domain = "api",        zone = "cvvfcm.fr", proxied = false },
+#   { domain = "meteoprint",  zone = "cvvfcm.fr", proxied = true },
+#   { domain = "healthcheck", zone = "cvvfcm.fr", proxied = false }, # cluster HTTP probe
+#   { domain = "traefik",     zone = "cvvfcm.fr", proxied = false }, # dashboard (needs traefik_dashboard_users)
+#   { domain = "api",         zone = "cvvfcm.fr", proxied = false },
 # ]
+
+# Traefik dashboard BasicAuth (also: export TF_VAR_traefik_dashboard_users="$(htpasswd -nbB admin '<pw>')").
+# Empty/unset = dashboard not exposed.
+# traefik_dashboard_users = "admin:$2y$05$..."
 
 # GitHub org secret export (also: export GITHUB_TOKEN=<PAT with admin:org>):
 github_org = "my-org"

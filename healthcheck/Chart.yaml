@@ -1,0 +1,6 @@
+apiVersion: v2
+name: healthcheck
+description: Minimal Caddy app that proves the cluster's HTTP ingress path end-to-end.
+type: application
+version: 0.1.0
+appVersion: "2"

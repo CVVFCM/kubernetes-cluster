@@ -47,6 +47,12 @@ resource "kubernetes_annotations" "oci_bv_nondefault" {
 
 # --- Gateway API CRDs (must precede Traefik's Gateway provider) ---
 
+# Standard channel. Must match the Traefik version: Traefik v3.7's
+# kubernetesGateway provider unconditionally watches TLSRoute + BackendTLSPolicy
+# (both graduated to standard in Gateway API v1.5). With older CRDs those v1
+# watches 404, the provider's caches never sync, and it silently reconciles
+# nothing (Gateway/HTTPRoute stay "Waiting for controller"). Keep this version in
+# lockstep with the Traefik chart.
 data "http" "gateway_api_crds" {
   url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/${var.gateway_api_version}/standard-install.yaml"
 }
@@ -127,6 +133,11 @@ resource "kubectl_manifest" "gateway_class" {
   depends_on = [helm_release.traefik]
 }
 
+# Listener ports must equal Traefik's entryPoint ports, not the public ports:
+# the kubernetesGateway provider matches listeners to entryPoints by port number.
+# The chart's default entryPoints are web=8000 / websecure=8443, and its Service
+# already maps public 80->8000 and 443->8443 (exposedPort). Using 8000/8443 here
+# avoids binding privileged ports in the (non-root, no-NET_BIND_SERVICE) pod.
 resource "kubectl_manifest" "gateway" {
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1"
@@ -138,13 +149,13 @@ resource "kubectl_manifest" "gateway" {
         {
           name          = "web"
           protocol      = "HTTP"
-          port          = 80
+          port          = 8000
           allowedRoutes = { namespaces = { from = "All" } }
         },
         {
           name     = "websecure"
           protocol = "HTTPS"
-          port     = 443
+          port     = 8443
           tls = {
             mode            = "Terminate"
             certificateRefs = [{ kind = "Secret", name = "wildcard-tls" }]
@@ -232,4 +243,66 @@ resource "kubectl_manifest" "wildcard_cert" {
   })
 
   depends_on = [kubectl_manifest.cluster_issuers, helm_release.traefik]
+}
+
+# --- Traefik dashboard (IngressRoute on websecure, BasicAuth-protected) ---
+# The dashboard API is already enabled in the chart (--api.dashboard=true) but
+# unexposed. We surface it via a Traefik IngressRoute (the kubernetesGateway
+# provider can't target the internal api@internal service). All gated on
+# credentials being supplied, so the dashboard stays private until then.
+
+resource "kubernetes_secret" "dashboard_auth" {
+  count = var.traefik_dashboard_users != "" ? 1 : 0
+
+  metadata {
+    name      = "dashboard-auth"
+    namespace = "traefik"
+  }
+
+  data = {
+    users = var.traefik_dashboard_users
+  }
+
+  depends_on = [helm_release.traefik]
+}
+
+resource "kubectl_manifest" "dashboard_middleware" {
+  count = var.traefik_dashboard_users != "" ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "Middleware"
+    metadata   = { name = "dashboard-auth", namespace = "traefik" }
+    spec = {
+      basicAuth = { secret = "dashboard-auth" }
+    }
+  })
+
+  depends_on = [helm_release.traefik, kubernetes_secret.dashboard_auth]
+}
+
+resource "kubectl_manifest" "dashboard_ingressroute" {
+  count = var.traefik_dashboard_users != "" ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "IngressRoute"
+    metadata   = { name = "dashboard", namespace = "traefik" }
+    spec = {
+      entryPoints = ["websecure"]
+      routes = [{
+        kind        = "Rule"
+        match       = "Host(`${var.traefik_dashboard_host}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+        services    = [{ name = "api@internal", kind = "TraefikService" }]
+        middlewares = [{ name = "dashboard-auth" }]
+      }]
+      tls = { secretName = "wildcard-tls" }
+    }
+  })
+
+  depends_on = [
+    helm_release.traefik,
+    kubectl_manifest.dashboard_middleware,
+    kubectl_manifest.wildcard_cert,
+  ]
 }
