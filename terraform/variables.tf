@@ -137,6 +137,11 @@ variable "domains" {
     { domain = "meteoprint", zone = "cvvfcm.fr", proxied = true },
     { domain = "healthcheck", zone = "cvvfcm.fr", proxied = false },
     { domain = "traefik", zone = "cvvfcm.fr", proxied = false },
+    # Catch-all → cluster NLB. Does not match the apex (cvvfcm.fr); explicit
+    # records (e.g. www, meteoprint) take DNS precedence over this wildcard.
+    # DNS-only: Cloudflare can't proxy a wildcard on the free plan, and the
+    # cluster already serves the trusted *.cvvfcm.fr cert directly.
+    { domain = "*", zone = "cvvfcm.fr", proxied = false },
   ]
 }
 
