@@ -22,7 +22,10 @@ tflint --init && tflint
 tofu plan -input=false
 ```
 
-Local applies need credentials in env: `GITHUB_TOKEN` (PAT, admin:org),
+Local applies need credentials in env: the org-owned GitHub App used by the
+github provider (`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`,
+`GITHUB_APP_PEM_FILE` = PEM *content*; app permission Organization → Secrets:
+read & write; CI reads them from the `GH_APP_*` repo secrets),
 `CLOUDFLARE_API_TOKEN`, `TF_VAR_cloudflare_dns_api_token`, and the Scaleway S3
 keys as `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (state backend). OCI auth
 comes from `terraform.tfvars` (gitignored; copy from `terraform.tfvars.example`).

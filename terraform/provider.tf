@@ -51,7 +51,11 @@ provider "oci" {
 
 provider "github" {
   owner = var.github_org
-  # token from GITHUB_TOKEN env (PAT with admin:org / org secrets write)
+
+  # Authenticates as the org-owned GitHub App (Organization > Secrets: read &
+  # write). Credentials come from env: GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID,
+  # GITHUB_APP_PEM_FILE (PEM content, not a path).
+  app_auth {}
 }
 
 provider "cloudflare" {

@@ -9,6 +9,8 @@ data "oci_containerengine_node_pool_option" "main" {
 }
 
 locals {
+  cluster_name = "cvvfcm-oke"
+
   # Latest supported k8s version (OCI returns the list ascending) unless pinned.
   k8s_version = var.kubernetes_version != "" ? var.kubernetes_version : element(
     data.oci_containerengine_cluster_option.main.kubernetes_versions,
@@ -27,7 +29,7 @@ locals {
 
 resource "oci_containerengine_cluster" "main" {
   compartment_id     = var.compartment_id
-  name               = "cvvfcm-oke"
+  name               = local.cluster_name
   kubernetes_version = local.k8s_version
   type               = "BASIC_CLUSTER" # free control plane
   vcn_id             = oci_core_vcn.main.id
@@ -92,13 +94,26 @@ resource "oci_containerengine_node_pool" "workers" {
 
 # --- kubeconfig (drives the kubernetes/helm/kubectl providers + the org secret) ---
 
+# The cluster is looked up by name instead of referencing
+# oci_containerengine_cluster.main directly: a data source that depends on a
+# resource with pending changes is deferred to apply, which leaves the
+# kubernetes/helm/kubectl providers without host/CA during plan (they then fall
+# back to localhost). Decoupling lets tofu upgrade the cluster's
+# kubernetes_version and manage in-cluster resources in the same run. On a clean
+# state the lookup is empty, so the two-phase bootstrap (see AGENTS.md) applies.
+data "oci_containerengine_clusters" "main" {
+  compartment_id = var.compartment_id
+  name           = local.cluster_name
+  state          = ["ACTIVE", "UPDATING"]
+}
+
 data "oci_containerengine_cluster_kube_config" "main" {
-  cluster_id    = oci_containerengine_cluster.main.id
+  cluster_id    = local.kube_cluster_id
   token_version = "2.0.0"
 }
 
 locals {
-  kube_cluster_id = oci_containerengine_cluster.main.id
+  kube_cluster_id = data.oci_containerengine_clusters.main.clusters[0].id
   kubeconfig_yaml = yamldecode(data.oci_containerengine_cluster_kube_config.main.content)
   kube_host       = local.kubeconfig_yaml["clusters"][0]["cluster"]["server"]
   kube_ca         = base64decode(local.kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"])
