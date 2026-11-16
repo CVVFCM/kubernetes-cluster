@@ -30,3 +30,8 @@ output "kubeconfig_cmd" {
   value       = "oci ce cluster create-kubeconfig --cluster-id ${oci_containerengine_cluster.main.id} --region ${var.region} --token-version 2.0.0 --file $HOME/.kube/config"
   description = "Fetch a local kubeconfig for this cluster."
 }
+
+output "cnpg_storage_class" {
+  value       = kubernetes_storage_class_v1.longhorn_cnpg.metadata[0].name
+  description = "StorageClass app repos must use for CNPG Cluster volumes (1 Longhorn replica, strict-local)."
+}

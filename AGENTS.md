@@ -73,6 +73,18 @@ Dependency chain matters — edits that reorder it will fail mid-apply:
    update strategy is `maxSurge=0, maxUnavailable=1` — rolls by freeing a host first.
 4. **cert-manager** — Let's Encrypt **DNS-01 via Cloudflare**; issues one
    wildcard cert per zone, terminated at the Gateway's `websecure` listener.
+5. **CloudNativePG** — operator only (`cnpg-system`); app repos declare their own
+   `Cluster` CRs. Ships the `longhorn-cnpg` StorageClass: **1 Longhorn replica,
+   `strict-local`**, `WaitForFirstConsumer`. CNPG replicates at the Postgres
+   level, so Longhorn replication would only double disk use on the shared boot
+   disks. App `Cluster`s must set `storage.storageClass: longhorn-cnpg`,
+   `instances: 2` and `affinity.podAntiAffinityType: required` (one instance
+   per node). Caveats: a volume is pinned to its node, so after losing a node
+   rebuild the instance with `kubectl cnpg destroy <cluster> <instance>`.
+   `instances: 1` on this class has no redundancy. **No backups yet**
+   (barman-cloud → Scaleway planned).
+6. **Grafana Alloy** — DaemonSet shipping logs/metrics/traces to Grafana Cloud;
+   deployed only when `grafana_cloud_token` is set.
 
 `dns.tf` reads Traefik's assigned NLB IP and creates Cloudflare A records for
 the app `domains`. `github.tf` exports the kubeconfig + OCI creds as **org**

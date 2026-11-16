@@ -183,6 +183,12 @@ variable "cert_manager_version" {
   default     = "v1.20.2"
 }
 
+variable "cnpg_version" {
+  type        = string
+  description = "CloudNativePG operator Helm chart (cloudnative-pg) version. Verify latest at cloudnative-pg.github.io/charts."
+  default     = "0.29.1" # operator 1.30.1
+}
+
 variable "acme_email" {
   type        = string
   description = "Contact email for the Let's Encrypt ACME account."

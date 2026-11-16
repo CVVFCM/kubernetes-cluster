@@ -307,6 +307,55 @@ resource "kubectl_manifest" "dashboard_ingressroute" {
   ]
 }
 
+# --- CloudNativePG operator (Postgres clusters declared by app repos) ---
+# Operator only: each app repo creates its own `Cluster` CR. Image is multi-arch
+# (arm64 OK on A1).
+
+resource "helm_release" "cnpg" {
+  name             = "cnpg"
+  repository       = "https://cloudnative-pg.github.io/charts"
+  chart            = "cloudnative-pg"
+  version          = var.cnpg_version
+  namespace        = "cnpg-system"
+  create_namespace = true
+  timeout          = 600
+
+  values = [yamlencode({
+    crds = { create = true }
+    resources = {
+      requests = { cpu = "50m", memory = "128Mi" }
+      limits   = { memory = "256Mi" }
+    }
+  })]
+
+  depends_on = [oci_containerengine_node_pool.workers]
+}
+
+# Dedicated Longhorn class for CNPG volumes. CNPG replicates at the Postgres
+# level (one instance per node), so storage-level replication would only double
+# disk usage and write I/O on the shared 2x100GB boot disks. One replica pinned
+# to the pod's node (strict-local) = shared-nothing, as the CNPG docs recommend.
+# WaitForFirstConsumer so the volume is created where CNPG schedules the pod.
+resource "kubernetes_storage_class_v1" "longhorn_cnpg" {
+  metadata {
+    name = "longhorn-cnpg"
+  }
+
+  storage_provisioner    = "driver.longhorn.io"
+  reclaim_policy         = "Delete" # orphaned volumes would eat the free disk budget
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    numberOfReplicas    = "1"
+    dataLocality        = "strict-local"
+    staleReplicaTimeout = "30"
+    fsType              = "ext4"
+  }
+
+  depends_on = [helm_release.longhorn]
+}
+
 # --- Grafana Alloy (logs + metrics + traces → Grafana Cloud) ---
 # Cluster telemetry collector. Runs as a DaemonSet (one pod per node) so it can
 # tail each node's pod logs and scrape node-local kubelet/cAdvisor. Endpoints +
