@@ -269,6 +269,27 @@ variable "github_org" {
   description = "GitHub organization that owns the exported secret."
 }
 
+# GitHub App credentials for the github provider. Null = provider reads
+# GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PEM_FILE from env.
+variable "github_app_id" {
+  type        = string
+  description = "Org-owned GitHub App ID (null = GITHUB_APP_ID env)."
+  default     = null
+}
+
+variable "github_app_installation_id" {
+  type        = string
+  description = "GitHub App installation ID on the org (null = GITHUB_APP_INSTALLATION_ID env)."
+  default     = null
+}
+
+variable "github_app_pem" {
+  type        = string
+  description = "GitHub App private key PEM content (null = GITHUB_APP_PEM_FILE env)."
+  default     = null
+  sensitive   = true
+}
+
 variable "kubeconfig_secret_name" {
   type        = string
   description = "Name of the GitHub org Actions secret holding the kubeconfig."

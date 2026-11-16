@@ -53,9 +53,15 @@ provider "github" {
   owner = var.github_org
 
   # Authenticates as the org-owned GitHub App (Organization > Secrets: read &
-  # write). Credentials come from env: GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID,
-  # GITHUB_APP_PEM_FILE (PEM content, not a path).
-  app_auth {}
+  # write). Wired through variables (default null) rather than a bare
+  # `app_auth {}` so `tofu validate` passes without credentials in env; null
+  # leaves the provider falling back to GITHUB_APP_ID,
+  # GITHUB_APP_INSTALLATION_ID and GITHUB_APP_PEM_FILE (PEM content, not a path).
+  app_auth {
+    id              = var.github_app_id
+    installation_id = var.github_app_installation_id
+    pem_file        = var.github_app_pem
+  }
 }
 
 provider "cloudflare" {
